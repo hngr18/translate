@@ -1,15 +1,13 @@
 #!/bin/bash
 
-[[ $1 = '' ]] && term="hello" || term=$1
-[[ $2 = '' ]] && to="serbian" || to=$2
+[[ $1 = '' ]] && term="Здраво" || term=$1
+[[ $2 = '' ]] && from="serbian" || from=$2
+[[ $3 = '' ]] && to="english" || to=$3
 
-translateResponse=$(curl -s https://www.bing.com/search\?q=$to+for+$term)
+user_agent='Mozilla/5.0 (Linux; Linux 4.15.0-55-generic #60-Ubuntu SMP Tue Jul 2 18:22:20 UTC 2019; en-US)'
 
-echo "$translateResponse" > test.html
+encQuery=$(echo -e $term+$from+to+$to | od -An -tx1 | tr ' ' % | xargs printf "%s")
 
-# regexp="(?:<span id="tta_tgt">)(.*)(?:<)"
-# [[ $translateResponse =~ $regexp ]] && echo hi
+translateResponse=$(curl -H "User-Agent: $user_agent" -s https://www.bing.com/search\?q=$encQuery)
 
-# echo $test
-
-#  [System.Web.HttpUtility]::HtmlDecode($matches[1])
+echo $translateResponse | grep -oP '(?<=<span id="tta_tgt">)[^<]+'
