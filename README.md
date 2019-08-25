@@ -8,6 +8,7 @@ CLI scripts to translate plain text
 
 # e.g.
 ./translateFrom.ps1 pokusati
+
 ./translateFrom.ps1 ulov serbian swedish
 
 ./translateTo.sh catch danish
