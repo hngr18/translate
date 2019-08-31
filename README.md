@@ -11,4 +11,4 @@ CLI scripts to translate plain text
 
 ./translateFrom.ps1 ulov serbian swedish
 
-./translateTo.sh catch danish
+./translateTo.sh finally danish
