@@ -23,5 +23,10 @@ translate plain text directly from CLI
 vscode [extension](https://code.visualstudio.com/docs/editor/extension-gallery) implemented as a vscode [language server](https://code.visualstudio.com/api/language-extensions/language-server-extension-guide)
 
 ### tasks
-- [x] language extension to translates javascript variable names from Serbian
-- [ ] 
+- [x] translate javascript variable name as hint
+  - [x] serbian > :uk:
+- [ ] exclude all javascript built-in objects e.g. Math from translation
+- [ ] include css files
+- [ ] add language setting
+- [ ] add DiagnosticSeverity setting
+- [ ] add to extension marketplace
