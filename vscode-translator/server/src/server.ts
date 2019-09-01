@@ -19,7 +19,7 @@ import {
 } from 'vscode-languageserver';
 
 import { SettingsManager } from './settings'
-
+import { patterns } from './patterns'
 import {
 	TextTranslator,
 	Translator
@@ -77,29 +77,31 @@ connection.onInitialized(() => {
 	}
 });
 
-documents.onDidChangeContent(change => { validateTextDocument(change.document); });
-documents.onDidClose(e => { settingsManager.deleteDocumentSettings(e.document.uri); });
-
 connection.onDidChangeConfiguration(change => {
 
-	settingsManager.changeSettings(change);
+	settingsManager.updateSettings(change);
 
-	documents.all().forEach(validateTextDocument);
+	documents.all().forEach(translateVariableNames);
 });
 
-async function validateTextDocument(textDocument: TextDocument): Promise<void> {
+documents.onDidChangeContent(change => { translateVariableNames(change.document); });
+documents.onDidClose(e => { settingsManager.deleteDocumentSettings(e.document.uri); });
+
+async function translateVariableNames(textDocument: TextDocument): Promise<void> {
 
 	let settings = await settingsManager.getDocumentSettings(textDocument.uri);
-	let pattern = new RegExp(/\b(?!(abstract|arguments|await|boolean|break|byte|case|catch|char|class|const|continue|debugger|default|delete|do|double|else|enum|eval|export|extends|false|final|finally|float|for|from|function|goto|if|implements|import|in|instanceof|int|interface|let|long|Math|native|new|null|package|private|protected|public|restore|render|return|rotate|save|scale|short|src|static|super|switch|synchronized|this|throw|throws|transient|translate|true|try|typeof|update|var|void|volatile|while|with|yield))\b[A-Za-z0-9_]{3,}\b/gm);
+
+	let pattern = patterns.get(textDocument.languageId);
+
+	if (!pattern)
+		return;
 
 	let text = textDocument.getText();
 	let m: RegExpExecArray | null;
 
 	let problems = 0;
 	let diagnostics: Diagnostic[] = [];
-	while (problems < settings.maxNumberOfProblems && (m = pattern.exec(text))) {
-
-		problems++;
+	while (problems++ < settings.maxNumberOfProblems && (m = pattern.exec(text))) {
 
 		let inputTerm = m[0].toLowerCase();
 

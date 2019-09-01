@@ -8,7 +8,7 @@ const defaultSettings: Settings = { maxNumberOfProblems: 3 };
 
 interface ISettingsManager {
 
-	changeSettings(change: DidChangeConfigurationParams): void;
+	updateSettings(change: DidChangeConfigurationParams): void;
 	getDocumentSettings(resource: string): Thenable<Settings>;
 	
 	deleteDocumentSettings(resource: string): void;
@@ -30,7 +30,7 @@ export class SettingsManager implements ISettingsManager {
 		this.documentSettings = new Map();
 	}
 
-	changeSettings(change: DidChangeConfigurationParams) {
+	updateSettings(change: DidChangeConfigurationParams) {
 		if (this.hasConfigurationCapability) {
 			this.documentSettings.clear();
 		} else {
