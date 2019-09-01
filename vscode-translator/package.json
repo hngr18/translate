@@ -1,14 +1,14 @@
 {
-	"name": "lsp-sample",
-	"description": "A language server example",
-	"author": "Microsoft Corporation",
+	"name": "vscode-translator",
+	"description": "Translate code within VSCode to a language of your choice",
+	"author": "hngr18",
 	"license": "MIT",
 	"version": "1.0.0",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-extension-samples"
+		"url": "https://github.com/hngr18/translate"
 	},
-	"publisher": "vscode-samples",
+	"publisher": "hngr18",
 	"categories": [],
 	"keywords": [
 		"multi-root ready"
