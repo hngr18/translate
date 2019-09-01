@@ -3,8 +3,6 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
-
-import * as https from 'https'
 import {
 	createConnection,
 	TextDocuments,
@@ -20,13 +18,30 @@ import {
 	CodeLensResolveRequest
 } from 'vscode-languageserver';
 
-let connection = createConnection(ProposedFeatures.all);
+import { TextTranslator, Translator } from './translator'
 
-let documents: TextDocuments = new TextDocuments();
+interface Settings {
+	maxNumberOfProblems: number;
+}
 
-let hasConfigurationCapability: boolean = false;
-let hasWorkspaceFolderCapability: boolean = false;
-let hasDiagnosticRelatedInformationCapability: boolean = false;
+let 
+	connection = createConnection(ProposedFeatures.all),
+	translator: TextTranslator = new Translator(),
+	documents: TextDocuments = new TextDocuments();
+
+let 
+	hasConfigurationCapability: boolean = false,
+	hasWorkspaceFolderCapability: boolean = false,
+	hasDiagnosticRelatedInformationCapability: boolean = false;
+
+const defaultSettings: Settings = { maxNumberOfProblems: 3 };
+
+let
+	globalSettings: Settings = defaultSettings,
+	documentSettings: Map<string, Thenable<Settings>> = new Map();
+
+documents.onDidClose(e => { documentSettings.delete(e.document.uri); });	
+documents.onDidChangeContent(change => { validateTextDocument(change.document); });
 
 connection.onInitialize((params: InitializeParams) => {
 
@@ -66,31 +81,20 @@ connection.onInitialized(() => {
 	}
 });
 
-interface ExampleSettings {
-	maxNumberOfProblems: number;
-}
-
-const defaultSettings: ExampleSettings = { maxNumberOfProblems: 3 };
-let globalSettings: ExampleSettings = defaultSettings;
-
-// Cache the settings of all open documents
-let documentSettings: Map<string, Thenable<ExampleSettings>> = new Map();
-
 connection.onDidChangeConfiguration(change => {
+
 	if (hasConfigurationCapability) {
-		// Reset all cached document settings
 		documentSettings.clear();
 	} else {
-		globalSettings = <ExampleSettings>(
+		globalSettings = <Settings>(
 			(change.settings.languageServerExample || defaultSettings)
 		);
 	}
 
-	// Revalidate all open text documents
 	documents.all().forEach(validateTextDocument);
 });
 
-function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
+function getDocumentSettings(resource: string): Thenable<Settings> {
 	if (!hasConfigurationCapability) {
 		return Promise.resolve(globalSettings);
 	}
@@ -105,52 +109,8 @@ function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
 	return result;
 }
 
-// Only keep settings for open documents
-documents.onDidClose(e => {
-	documentSettings.delete(e.document.uri);
-});
-
-// The content of a text document has changed. This event is emitted
-// when the text document first opened or when its content has changed.
-documents.onDidChangeContent(change => {
-	validateTextDocument(change.document);
-});
-
-
-async function getTranslation(input: string): Promise<string> {
-
-	const
-		url = `https://www.bing.com/search?q=${input}+serbian+to+english`,
-		rgxTranslation = new RegExp(/(?:<span id="tta_tgt">)(.*)(?:<\/span>)/gm);
-
-	return new Promise(resolve => {
-		https.get(url, resp => {
-
-			let data = '';
-
-			resp.on('data', chunk => { data += chunk; });
-			resp.on('end', () => {
-
-				let results = rgxTranslation.exec(data);
-
-				resolve(results![1]);
-			});
-
-		}).on("error", err => {
-			resolve(`error: ${err}`);
-		});
-	});
-}
-
-interface translation {
-	input: string,
-	output: string
-}
-
-let translations: translation[] = [];
-
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-	// In this simple example we get the settings for every validate run.
+	
 	let settings = await getDocumentSettings(textDocument.uri);
 	let pattern = new RegExp(/\b(?!(abstract|arguments|await|boolean|break|byte|case|catch|char|class|const|continue|debugger|default|delete|do|double|else|enum|eval|export|extends|false|final|finally|float|for|from|function|goto|if|implements|import|in|instanceof|int|interface|let|long|Math|native|new|null|package|private|protected|public|restore|render|return|rotate|save|scale|short|src|static|super|switch|synchronized|this|throw|throws|transient|translate|true|try|typeof|update|var|void|volatile|while|with|yield))\b[A-Za-z0-9_]{3,}\b/gm);
 
@@ -159,16 +119,13 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
 	let problems = 0;
 	let diagnostics: Diagnostic[] = [];
-	while (problems < 2 /*settings.maxNumberOfProblems*/ && (m = pattern.exec(text))) {
+	while (problems < 1 /*settings.maxNumberOfProblems*/ && (m = pattern.exec(text))) {
 
 		problems++;
 
 		let inputTerm = m[0].toLowerCase();
 
-		if (!translations.find(t => t.input == inputTerm))
-			translations.push({ input: inputTerm, output: await getTranslation(inputTerm) });
-
-		let outputTerm = translations.find(t => t.input == inputTerm)!.output;
+		let outputTerm = translator.translateText(inputTerm);
 
 		let diagnostic: Diagnostic = {
 			severity: DiagnosticSeverity.Hint,
@@ -200,12 +157,10 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 		diagnostics.push(diagnostic);
 	}
 
-	// Send the computed diagnostics to VSCode.
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
 connection.onDidChangeWatchedFiles(_change => {
-	// Monitored files have change in VSCode
 	connection.console.log('We received an file change event');
 });
 
