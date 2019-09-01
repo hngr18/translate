@@ -18,30 +18,23 @@ import {
 	CodeLensResolveRequest
 } from 'vscode-languageserver';
 
-import { TextTranslator, Translator } from './translator'
+import { SettingsManager } from './settings'
 
-interface Settings {
-	maxNumberOfProblems: number;
-}
+import {
+	TextTranslator,
+	Translator
+} from './translator'
 
-let 
+let
 	connection = createConnection(ProposedFeatures.all),
+	settingsManager: SettingsManager,
 	translator: TextTranslator = new Translator(),
 	documents: TextDocuments = new TextDocuments();
 
-let 
+let
 	hasConfigurationCapability: boolean = false,
 	hasWorkspaceFolderCapability: boolean = false,
 	hasDiagnosticRelatedInformationCapability: boolean = false;
-
-const defaultSettings: Settings = { maxNumberOfProblems: 3 };
-
-let
-	globalSettings: Settings = defaultSettings,
-	documentSettings: Map<string, Thenable<Settings>> = new Map();
-
-documents.onDidClose(e => { documentSettings.delete(e.document.uri); });	
-documents.onDidChangeContent(change => { validateTextDocument(change.document); });
 
 connection.onInitialize((params: InitializeParams) => {
 
@@ -70,8 +63,10 @@ connection.onInitialize((params: InitializeParams) => {
 });
 
 connection.onInitialized(() => {
+
+	settingsManager = new SettingsManager(connection, hasConfigurationCapability);
+
 	if (hasConfigurationCapability) {
-		// Register for all configuration changes.
 		connection.client.register(DidChangeConfigurationNotification.type, undefined);
 	}
 	if (hasWorkspaceFolderCapability) {
@@ -81,37 +76,20 @@ connection.onInitialized(() => {
 	}
 });
 
+documents.onDidChangeContent(change => { validateTextDocument(change.document); });
+documents.onDidClose(e => { settingsManager.deleteDocumentSettings(e.document.uri); });
+
 connection.onDidChangeConfiguration(change => {
 
-	if (hasConfigurationCapability) {
-		documentSettings.clear();
-	} else {
-		globalSettings = <Settings>(
-			(change.settings.languageServerExample || defaultSettings)
-		);
-	}
+	if (!!change.settings && !!change.settings.languageServerExample)
+		settingsManager.updateGlobalSettings(change.settings.languageServerExample);
 
 	documents.all().forEach(validateTextDocument);
 });
 
-function getDocumentSettings(resource: string): Thenable<Settings> {
-	if (!hasConfigurationCapability) {
-		return Promise.resolve(globalSettings);
-	}
-	let result = documentSettings.get(resource);
-	if (!result) {
-		result = connection.workspace.getConfiguration({
-			scopeUri: resource,
-			section: 'languageServerExample'
-		});
-		documentSettings.set(resource, result);
-	}
-	return result;
-}
-
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-	
-	let settings = await getDocumentSettings(textDocument.uri);
+
+	let settings = await settingsManager.getDocumentSettings(textDocument.uri);
 	let pattern = new RegExp(/\b(?!(abstract|arguments|await|boolean|break|byte|case|catch|char|class|const|continue|debugger|default|delete|do|double|else|enum|eval|export|extends|false|final|finally|float|for|from|function|goto|if|implements|import|in|instanceof|int|interface|let|long|Math|native|new|null|package|private|protected|public|restore|render|return|rotate|save|scale|short|src|static|super|switch|synchronized|this|throw|throws|transient|translate|true|try|typeof|update|var|void|volatile|while|with|yield))\b[A-Za-z0-9_]{3,}\b/gm);
 
 	let text = textDocument.getText();
@@ -119,7 +97,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
 	let problems = 0;
 	let diagnostics: Diagnostic[] = [];
-	while (problems < 1 /*settings.maxNumberOfProblems*/ && (m = pattern.exec(text))) {
+	while (problems < settings.maxNumberOfProblems && (m = pattern.exec(text))) {
 
 		problems++;
 
