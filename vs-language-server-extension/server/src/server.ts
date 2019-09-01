@@ -124,7 +124,7 @@ documents.onDidChangeContent(change => {
 async function getTranslation(input: string) {
 
 	const
-		url = `https://www.bing.com/search?q=${input}+serbian+to+english`,
+		url = `http://www.bing.com/search?q=${input}+serbian+to+english`,
 		response = await WebRequest.get(url),
 		regexTran = new RegExp(/(?:<span id="tta_tgt">)(.*)(?:<\/span>)/gm),
 		results = regexTran.exec(response.content);
@@ -150,7 +150,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 
 	let problems = 0;
 	let diagnostics: Diagnostic[] = [];
-	while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
+	while (problems < settings.maxNumberOfProblems && (m = pattern.exec(text))) {
 
 		problems++;
 
