@@ -1,14 +1,18 @@
+import { DidChangeConfigurationParams } from 'vscode-languageserver';
+
 export interface Settings {
 	maxNumberOfProblems: number;
 }
 
-interface ISettingsManager {
-	getDocumentSettings(resource: string): Thenable<Settings>;
-	deleteDocumentSettings(resource: string): void;
-	updateGlobalSettings(settings: Settings | null): void;
-}
-
 const defaultSettings: Settings = { maxNumberOfProblems: 3 };
+
+interface ISettingsManager {
+
+	changeSettings(change: DidChangeConfigurationParams): void;
+	getDocumentSettings(resource: string): Thenable<Settings>;
+	
+	deleteDocumentSettings(resource: string): void;
+}
 
 export class SettingsManager implements ISettingsManager {
 	
@@ -26,12 +30,12 @@ export class SettingsManager implements ISettingsManager {
 		this.documentSettings = new Map();
 	}
 
-	updateGlobalSettings(settings: Settings | null) {
+	changeSettings(change: DidChangeConfigurationParams) {
 		if (this.hasConfigurationCapability) {
 			this.documentSettings.clear();
 		} else {
 			this.global = <Settings>(
-				(settings || defaultSettings)
+				(change.settings.languageServerExample || defaultSettings)
 			);
 		}
 	}
@@ -41,7 +45,7 @@ export class SettingsManager implements ISettingsManager {
 		if (!this.hasConfigurationCapability) {
 			return Promise.resolve(this.global);
 		}
-		
+
 		let result = this.documentSettings.get(resource);
 		if (!result) {
 			result = this.connection.workspace.getConfiguration({

@@ -64,10 +64,11 @@ connection.onInitialize((params: InitializeParams) => {
 
 connection.onInitialized(() => {
 
-	settingsManager = new SettingsManager(connection, hasConfigurationCapability);
-
 	if (hasConfigurationCapability) {
+
 		connection.client.register(DidChangeConfigurationNotification.type, undefined);
+
+		settingsManager = new SettingsManager(connection, hasConfigurationCapability);
 	}
 	if (hasWorkspaceFolderCapability) {
 		connection.workspace.onDidChangeWorkspaceFolders(_event => {
@@ -81,8 +82,7 @@ documents.onDidClose(e => { settingsManager.deleteDocumentSettings(e.document.ur
 
 connection.onDidChangeConfiguration(change => {
 
-	if (!!change.settings && !!change.settings.languageServerExample)
-		settingsManager.updateGlobalSettings(change.settings.languageServerExample);
+	settingsManager.changeSettings(change);
 
 	documents.all().forEach(validateTextDocument);
 });
