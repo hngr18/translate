@@ -18,7 +18,7 @@ import {
 	CodeLensResolveRequest
 } from 'vscode-languageserver';
 
-import * as WebRequest from 'web-request';
+import * as https from 'https'
 
 let connection = createConnection(ProposedFeatures.all);
 
@@ -121,18 +121,30 @@ documents.onDidChangeContent(change => {
 });
 
 
-async function getTranslation(input: string) {
+async function getTranslation(input: string): Promise<string> {
 
-	const
-		url = `http://www.bing.com/search?q=${input}+serbian+to+english`,
-		response = await WebRequest.get(url),
-		regexTran = new RegExp(/(?:<span id="tta_tgt">)(.*)(?:<\/span>)/gm),
-		results = regexTran.exec(response.content);
+	const 
+		url = `https://www.bing.com/search?q=${input}+serbian+to+english`,
+		rgxTranslation = new RegExp(/(?:<span id="tta_tgt">)(.*)(?:<\/span>)/gm);
+	
+	return new Promise(resolve => {
+		https.get(url, resp => {
+			
+			let data = '';
 
-	return results![1];
+			resp.on('data', chunk => { data += chunk; });
+			resp.on('end', () => {
+				
+				let results = rgxTranslation.exec(data);
+
+				resolve(results![1]);
+			});
+
+		}).on("error", err => {
+			resolve(`error: ${err}`);
+		});
+	});
 }
-
-let pattern = /\b(?!(abstract|arguments|await|boolean|break|byte|case|catch|char|class|const|continue|debugger|default|delete|do|double|else|enum|eval|export|extends|false|final|finally|float|for|from|function|goto|if|implements|import|in|instanceof|int|interface|let|long|Math|native|new|null|package|private|protected|public|restore|render|return|rotate|save|scale|short|src|static|super|switch|synchronized|this|throw|throws|transient|translate|true|try|typeof|update|var|void|volatile|while|with|yield))\b[A-Za-z0-9_]{3,}\b/gm
 
 interface translation {
 	input: string,
@@ -144,21 +156,22 @@ let translations: translation[] = [];
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	// In this simple example we get the settings for every validate run.
 	let settings = await getDocumentSettings(textDocument.uri);
+	let pattern = new RegExp(/\b(?!(abstract|arguments|await|boolean|break|byte|case|catch|char|class|const|continue|debugger|default|delete|do|double|else|enum|eval|export|extends|false|final|finally|float|for|from|function|goto|if|implements|import|in|instanceof|int|interface|let|long|Math|native|new|null|package|private|protected|public|restore|render|return|rotate|save|scale|short|src|static|super|switch|synchronized|this|throw|throws|transient|translate|true|try|typeof|update|var|void|volatile|while|with|yield))\b[A-Za-z0-9_]{3,}\b/gm);
 
 	let text = textDocument.getText();
 	let m: RegExpExecArray | null;
 
 	let problems = 0;
 	let diagnostics: Diagnostic[] = [];
-	while (problems < settings.maxNumberOfProblems && (m = pattern.exec(text))) {
+	while (problems < 2 /*settings.maxNumberOfProblems*/ && (m = pattern.exec(text))) {
 
 		problems++;
 
 		let inputTerm = m[0].toLowerCase();
 
 		if (!translations.find(t => t.input == inputTerm))
-			translations.push({ input : inputTerm, output : await getTranslation(inputTerm) });
-		
+			translations.push({ input: inputTerm, output: await getTranslation(inputTerm) });
+
 		let outputTerm = translations.find(t => t.input == inputTerm)!.output;
 
 		let diagnostic: Diagnostic = {
