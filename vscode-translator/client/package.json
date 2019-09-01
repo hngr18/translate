@@ -1,6 +1,6 @@
 {
-	"name": "vs-code-translation-extension",
-	"description": "A variable names translator extension for VSCode",
+	"name": "vscode-translator-client",
+	"description": "A variable names translator server for VSCode extension",
 	"author": "hngr18",
 	"license": "MIT",
 	"version": "0.0.1",

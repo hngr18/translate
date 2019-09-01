@@ -3,6 +3,8 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
+
+import * as https from 'https'
 import {
 	createConnection,
 	TextDocuments,
@@ -18,8 +20,6 @@ import {
 	CodeLensResolveRequest
 } from 'vscode-languageserver';
 
-import * as https from 'https'
-
 let connection = createConnection(ProposedFeatures.all);
 
 let documents: TextDocuments = new TextDocuments();
@@ -29,10 +29,9 @@ let hasWorkspaceFolderCapability: boolean = false;
 let hasDiagnosticRelatedInformationCapability: boolean = false;
 
 connection.onInitialize((params: InitializeParams) => {
+
 	let capabilities = params.capabilities;
 
-	// Does the client support the `workspace/configuration` request?
-	// If not, we will fall back using global settings
 	hasConfigurationCapability = !!(
 		capabilities.workspace && !!capabilities.workspace.configuration
 	);
@@ -71,9 +70,6 @@ interface ExampleSettings {
 	maxNumberOfProblems: number;
 }
 
-// The global settings, used when the `workspace/configuration` request is not supported by the client.
-// Please note that this is not the case when using this server with the client provided in this example
-// but could happen with other clients.
 const defaultSettings: ExampleSettings = { maxNumberOfProblems: 3 };
 let globalSettings: ExampleSettings = defaultSettings;
 
@@ -123,18 +119,18 @@ documents.onDidChangeContent(change => {
 
 async function getTranslation(input: string): Promise<string> {
 
-	const 
+	const
 		url = `https://www.bing.com/search?q=${input}+serbian+to+english`,
 		rgxTranslation = new RegExp(/(?:<span id="tta_tgt">)(.*)(?:<\/span>)/gm);
-	
+
 	return new Promise(resolve => {
 		https.get(url, resp => {
-			
+
 			let data = '';
 
 			resp.on('data', chunk => { data += chunk; });
 			resp.on('end', () => {
-				
+
 				let results = rgxTranslation.exec(data);
 
 				resolve(results![1]);
