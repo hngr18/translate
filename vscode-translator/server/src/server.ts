@@ -18,18 +18,17 @@ import {
 	CodeLensResolveRequest
 } from 'vscode-languageserver';
 
-import { Settings } from './settings'
+import { SettingsManager } from './settings'
 import { patterns } from './patterns'
 import {
-	Translation,
 	Translator
 } from './translator'
 
 let
-	connection = createConnection(ProposedFeatures.all),
-	settingsManager = Settings,
-	translator = new Translator(),
-	documents = new TextDocuments();
+	settingsManager : SettingsManager,
+	translator : Translator,
+	documents = new TextDocuments(),
+	connection = createConnection(ProposedFeatures.all);
 
 let
 	hasConfigurationCapability: boolean = false,
@@ -65,12 +64,16 @@ connection.onInitialize((params: InitializeParams) => {
 connection.onInitialized(() => {
 
 	if (hasConfigurationCapability) {
-
 		connection.client.register(DidChangeConfigurationNotification.type, undefined);
 
-		settingsManager = new Settings(connection, hasConfigurationCapability);
+		settingsManager = new SettingsManager(connection, hasConfigurationCapability);
+
+		translator = new Translator(settingsManager);
 	}
 	if (hasWorkspaceFolderCapability) {
+		
+		var f =  connection.workspace.getWorkspaceFolders();
+
 		connection.workspace.onDidChangeWorkspaceFolders(_event => {
 			connection.console.log('Workspace folder change event received.');
 		});
@@ -89,23 +92,21 @@ documents.onDidClose(e => { settingsManager.deleteDocumentSettings(e.document.ur
 
 async function translateVariableNames(textDocument: TextDocument): Promise<void> {
 
-	let settings = await settingsManager.getDocumentSettings(textDocument.uri);
-
 	let pattern = patterns.get(textDocument.languageId);
 
 	if (!pattern)
 		return;
 
+	let settings = await settingsManager.getConfiguration(textDocument.uri);
 	let text = textDocument.getText();
 	let m: RegExpExecArray | null;
-
-	let problems = 0;
 	let diagnostics: Diagnostic[] = [];
-	while (problems++ < settings.maxNumberOfProblems && (m = pattern.exec(text))) {
 
-		let inputTerm = m[0].toLowerCase();
+	while ((m = pattern.exec(text))) {
 
-		let outputTerm = translator.translateText(inputTerm);
+		let input = m[0].toLowerCase();
+
+		let output = await translator.translateText(input, textDocument.uri);
 
 		let diagnostic: Diagnostic = {
 			severity: DiagnosticSeverity.Hint,
@@ -113,8 +114,8 @@ async function translateVariableNames(textDocument: TextDocument): Promise<void>
 				start: textDocument.positionAt(m.index),
 				end: textDocument.positionAt(m.index + m[0].length)
 			},
-			message: `'${outputTerm}'`,
-			source: 'English'
+			message: `'${output}'`,
+			source: settings.to
 		};
 		if (hasDiagnosticRelatedInformationCapability) {
 			diagnostic.relatedInformation = [

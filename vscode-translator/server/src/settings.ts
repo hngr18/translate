@@ -1,15 +1,16 @@
 import { DidChangeConfigurationParams } from 'vscode-languageserver';
 
 export interface Settings {
-	maxNumberOfProblems: number;
+	from: string;
+	to: string;
 }
 
-const defaultSettings: Settings = { maxNumberOfProblems: 3 };
+const defaultSettings: Settings = { from : '', to : '' };
 
 interface _Settings {
 
 	updateSettings(change: DidChangeConfigurationParams): void;
-	getDocumentSettings(resource: string): Thenable<Settings>;
+	getConfiguration(resource: string): Thenable<Settings>;
 	
 	deleteDocumentSettings(resource: string): void;
 }
@@ -30,17 +31,7 @@ export class SettingsManager implements _Settings {
 		this.documentSettings = new Map();
 	}
 
-	updateSettings(change: DidChangeConfigurationParams) {
-		if (this.hasConfigurationCapability) {
-			this.documentSettings.clear();
-		} else {
-			this.global = <Settings>(
-				(change.settings.languageServerExample || defaultSettings)
-			);
-		}
-	}
-
-	getDocumentSettings(resource: string): Thenable<Settings> {
+	getConfiguration(resource: string): Thenable<Settings> {
 		
 		if (!this.hasConfigurationCapability) {
 			return Promise.resolve(this.global);
@@ -50,11 +41,21 @@ export class SettingsManager implements _Settings {
 		if (!result) {
 			result = this.connection.workspace.getConfiguration({
 				scopeUri: resource,
-				section: 'languageServerExample'
+				section: 'translation'
 			});
 			this.documentSettings.set(resource, result!);
 		}
 		return result!;
+	}
+
+	updateSettings(change: DidChangeConfigurationParams) {
+		if (this.hasConfigurationCapability) {
+			this.documentSettings.clear();
+		} else {
+			this.global = <Settings>(
+				(change.settings.languageServerExample || defaultSettings)
+			);
+		}
 	}
 
 	deleteDocumentSettings(resource: string): void {

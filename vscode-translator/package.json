@@ -25,13 +25,19 @@
 			"type": "object",
 			"title": "Example configuration",
 			"properties": {
-				"languageServerExample.maxNumberOfProblems": {
+				"translation.input": {
 					"scope": "resource",
-					"type": "number",
-					"default": 5,
-					"description": "Controls the maximum number of problems produced by the server."
+					"type": "string",
+					"default": "serbian",
+					"description": "The language of the variables and comments in the source code you would like to translate"
 				},
-				"languageServerExample.trace.server": {
+				"translation.output": {
+					"scope": "resource",
+					"type": "string",
+					"default": "english",
+					"description": "The language you would like to translate to"
+				},
+				"translation.trace.server": {
 					"scope": "window",
 					"type": "string",
 					"enum": [

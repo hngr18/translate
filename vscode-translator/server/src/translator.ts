@@ -1,41 +1,40 @@
 import * as https from 'https'
+import { SettingsManager } from './settings';
 
-export interface Translation {
+interface Translation {
+	from: string, to: string,
 	input: string, output: string
 }
 
 export class Translator extends Array<Translation> {
 
+	settingsManager : SettingsManager;
 	translations: Translation[];
 
-	constructor() {
+	constructor(settingsManager : SettingsManager) {
 		super();
 
-		this.translations = new Array<Translation>(
-
-		);
+		this.settingsManager = settingsManager;
+		this.translations = new Array<Translation>();
 	}
 
 	loadFromCache(): Translation[] {
-
-		
-
 		return new Array<Translation>(
 
 		)
 	};
 
-	translateText(input: string): string {
-		// if (!translations.find(t => t.input == inputTerm))
-		// 	translations.push({ input: inputTerm, output: await getTranslation(inputTerm) });
+	async translateText(input: string, resource: string): Promise<string> {
 
-		// let outputTerm = translations.find(t => t.input == inputTerm)!.output;
+		var settings = await this.settingsManager.getConfiguration(resource);
 
-		return this.translations.get(input) || `'err' ${input} not defined`;
+		if (!this.translations.find(t => t.input == input && t.from == settings.from && t.to == settings.to))
+			this.translations.push({ input: input, from: settings.from, to: settings.to, output: await this.getTranslation(input) });
+
+		return this.translations.find(t => t.input == input && t.from == settings.from && t.to == settings.to)!.output;
 	}
 
-	getTranslation(input: string): Promise<string> {
-
+	async getTranslation(input: string): Promise<string> {
 		const
 			url = `https://www.bing.com/search?q=${input}+serbian+to+english`,
 			rgxTranslation = new RegExp(/(?:<span id="tta_tgt">)(.*)(?:<\/span>)/gm);
