@@ -18,18 +18,18 @@ import {
 	CodeLensResolveRequest
 } from 'vscode-languageserver';
 
-import { SettingsManager } from './settings'
+import { Settings } from './settings'
 import { patterns } from './patterns'
 import {
-	TextTranslator,
+	Translation,
 	Translator
 } from './translator'
 
 let
 	connection = createConnection(ProposedFeatures.all),
-	settingsManager: SettingsManager,
-	translator: TextTranslator = new Translator(),
-	documents: TextDocuments = new TextDocuments();
+	settingsManager = Settings,
+	translator = new Translator(),
+	documents = new TextDocuments();
 
 let
 	hasConfigurationCapability: boolean = false,
@@ -68,7 +68,7 @@ connection.onInitialized(() => {
 
 		connection.client.register(DidChangeConfigurationNotification.type, undefined);
 
-		settingsManager = new SettingsManager(connection, hasConfigurationCapability);
+		settingsManager = new Settings(connection, hasConfigurationCapability);
 	}
 	if (hasWorkspaceFolderCapability) {
 		connection.workspace.onDidChangeWorkspaceFolders(_event => {

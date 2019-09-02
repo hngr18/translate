@@ -6,7 +6,7 @@ export interface Settings {
 
 const defaultSettings: Settings = { maxNumberOfProblems: 3 };
 
-interface ISettingsManager {
+interface _Settings {
 
 	updateSettings(change: DidChangeConfigurationParams): void;
 	getDocumentSettings(resource: string): Thenable<Settings>;
@@ -14,7 +14,7 @@ interface ISettingsManager {
 	deleteDocumentSettings(resource: string): void;
 }
 
-export class SettingsManager implements ISettingsManager {
+export class SettingsManager implements _Settings {
 	
 	connection: any;
 	hasConfigurationCapability: boolean;

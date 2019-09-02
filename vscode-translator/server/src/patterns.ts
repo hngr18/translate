@@ -8,7 +8,7 @@ patterns.set(
 
 patterns.set (
 	'stylesheet',
-	/\/\*[^*]*\*+([^\/*][^*]*\*+)*\//g
+	/(?:\/\*)([^\/*][^*]*)/g
 )
 
 export { patterns };

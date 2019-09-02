@@ -4,14 +4,11 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as path from 'path';
-import { workspace, ExtensionContext } from 'vscode';
-
+import { 
+	workspace, ExtensionContext } from 'vscode';
 import {
-	LanguageClient,
-	LanguageClientOptions,
-	ServerOptions,
-	TransportKind
-} from 'vscode-languageclient';
+	LanguageClient, LanguageClientOptions,
+	ServerOptions, TransportKind } from 'vscode-languageclient';
 
 let client: LanguageClient;
 
@@ -20,20 +17,18 @@ export function activate(context: ExtensionContext) {
 	let serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
 	);	
-	let nodeDebugForVS = '--inspect=6009';
-	let debugOptions = { execArgv: ['--nolazy', nodeDebugForVS ] };
 
 	let serverOptions: ServerOptions = {
 		run: 	{ module: serverModule, transport: TransportKind.ipc },
+		// or
 		debug: 	{ module: serverModule, transport: TransportKind.ipc,
-				  options: debugOptions 
+				  options: { execArgv: ['--nolazy', '--inspect=6009' ] }
 		}
 	};
 
 	let clientOptions: LanguageClientOptions = {
 		documentSelector: ['javascript'],
 		synchronize: {
-			// Notify the server about file changes to '.clientrc files contained in the workspace
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
 		}
 	};
@@ -45,7 +40,7 @@ export function activate(context: ExtensionContext) {
 		clientOptions
 	);
 
-	client.start(); // launches server too
+	client.start();
 }
 
 export function deactivate(): Thenable<void> | undefined {
