@@ -18,7 +18,7 @@ translate plain text directly from CLI
 ./translateTo.sh finally danish
 
 
-# vscode language extension
+# vscode translator
 ### description
 vscode [extension](https://code.visualstudio.com/docs/editor/extension-gallery) implemented as a vscode [language server](https://code.visualstudio.com/api/language-extensions/language-server-extension-guide)
 
