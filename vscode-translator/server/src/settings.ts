@@ -1,11 +1,14 @@
 import { DidChangeConfigurationParams } from 'vscode-languageserver';
 
 export interface Settings {
-	from: string;
-	to: string;
+	input: string;
+	output: string;
+	tokenUrl: string;
+	translationUrl: string;
+	apiKey: string;
 }
 
-const defaultSettings: Settings = { from : '', to : '' };
+const defaultSettings: Settings = { input : '', output : '', tokenUrl : '', translationUrl : '', apiKey : '' };
 
 interface _Settings {
 

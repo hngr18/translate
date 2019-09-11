@@ -19,14 +19,12 @@ import {
 } from 'vscode-languageserver';
 
 import { SettingsManager } from './settings'
+import { Translator } from './translator'
 import { patterns } from './patterns'
-import {
-	Translator
-} from './translator'
 
 let
-	settingsManager : SettingsManager,
-	translator : Translator,
+	settingsManager: SettingsManager,
+	translator: Translator,
 	documents = new TextDocuments(),
 	connection = createConnection(ProposedFeatures.all);
 
@@ -71,8 +69,8 @@ connection.onInitialized(() => {
 		translator = new Translator(settingsManager);
 	}
 	if (hasWorkspaceFolderCapability) {
-		
-		var f =  connection.workspace.getWorkspaceFolders();
+
+		var f = connection.workspace.getWorkspaceFolders();
 
 		connection.workspace.onDidChangeWorkspaceFolders(_event => {
 			connection.console.log('Workspace folder change event received.');
@@ -92,7 +90,7 @@ documents.onDidClose(e => { settingsManager.deleteDocumentSettings(e.document.ur
 
 async function translateVariableNames(textDocument: TextDocument): Promise<void> {
 
-	let pattern = patterns.get(textDocument.languageId);
+	let pattern = patterns.getById(textDocument.languageId);
 
 	if (!pattern)
 		return;
@@ -104,7 +102,7 @@ async function translateVariableNames(textDocument: TextDocument): Promise<void>
 
 	while ((m = pattern.exec(text))) {
 
-		let input = m[0].toLowerCase();
+		let input = m[0];
 
 		let output = await translator.translateText(input, textDocument.uri);
 
@@ -115,26 +113,19 @@ async function translateVariableNames(textDocument: TextDocument): Promise<void>
 				end: textDocument.positionAt(m.index + m[0].length)
 			},
 			message: `'${output}'`,
-			source: settings.to
+			source: settings.output
 		};
-		if (hasDiagnosticRelatedInformationCapability) {
-			diagnostic.relatedInformation = [
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range)
-					},
-					message: 'Spelling matters'
-				},
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range)
-					},
-					message: 'Particularly for names'
-				}
-			];
-		}
+		// if (hasDiagnosticRelatedInformationCapability) {
+		// 	diagnostic.relatedInformation = [
+		// 		{
+		// 			location: {
+		// 				uri: textDocument.uri,
+		// 				range: Object.assign({}, diagnostic.range)
+		// 			},
+		// 			message: 'Write underneath'
+		// 		}
+		// 	];
+		// }
 		diagnostics.push(diagnostic);
 	}
 

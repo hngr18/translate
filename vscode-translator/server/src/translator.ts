@@ -1,5 +1,6 @@
 import * as https from 'https'
-import { SettingsManager } from './settings';
+import { patterns } from './patterns'
+import { SettingsManager, Settings } from './settings';
 
 interface Translation {
 	from: string, to: string,
@@ -8,14 +9,17 @@ interface Translation {
 
 export class Translator extends Array<Translation> {
 
-	settingsManager : SettingsManager;
+	settingsManager: SettingsManager;
 	translations: Translation[];
 
-	constructor(settingsManager : SettingsManager) {
+	token: string = '';
+	lastTokenRefresh: Date | undefined;
+
+	constructor(settingsManager: SettingsManager) {
 		super();
 
 		this.settingsManager = settingsManager;
-		this.translations = new Array<Translation>();
+		this.translations = this.loadFromCache();
 	}
 
 	loadFromCache(): Translation[] {
@@ -26,35 +30,116 @@ export class Translator extends Array<Translation> {
 
 	async translateText(input: string, resource: string): Promise<string> {
 
-		var settings = await this.settingsManager.getConfiguration(resource);
+		const
+			settings = await this.settingsManager.getConfiguration(resource),
+			pattern = patterns.camelCase,
+			words = input.split(pattern!).filter(e => e);
 
-		if (!this.translations.find(t => t.input == input && t.from == settings.from && t.to == settings.to))
-			this.translations.push({ input: input, from: settings.from, to: settings.to, output: await this.getTranslation(input) });
+		await Promise.all(
+			words.map(async word => {
 
-		return this.translations.find(t => t.input == input && t.from == settings.from && t.to == settings.to)!.output;
+				let input = word.toLowerCase();
+
+				if (!this.translations.find(t => t.input == input && t.from == settings.input && t.to == settings.output))
+					this.translations.push({
+						from: settings.input, to: settings.output,
+						input: input, output: await this.getTranslation(input, settings)
+					});
+			})
+		);
+
+		let output = '';
+
+		words.forEach(word => {
+			let input = word.toLowerCase();
+			let translation = this.translations.find(t => t.input == input && t.from == settings.input && t.to == settings.output)!.output;
+			output += this.matchCase(word, translation);
+		})
+
+		return output;
 	}
 
-	async getTranslation(input: string): Promise<string> {
-		const
-			url = `https://www.bing.com/search?q=${input}+serbian+to+english`,
-			rgxTranslation = new RegExp(/(?:<span id="tta_tgt">)(.*)(?:<\/span>)/gm);
+	private matchCase(word: string, translation: string) {
+		return word.substr(0, 1) == word.substr(0, 1).toUpperCase() ?
+			translation.substr(0, 1).toUpperCase() + translation.substr(1).toLowerCase() :
+			translation.toLowerCase();
+	}
+
+	async getTranslation(input: string, settings: Settings): Promise<string> {
+
+		if (this.tokenRefreshRequired())
+			await this.refreshToken(settings);
 
 		return new Promise(resolve => {
-			https.get(url, resp => {
+			
+			let translationUrl = new URL(settings.translationUrl);
 
-				let data = '';
+			let bodyContent = JSON.stringify([{
+				Text: input
+			}]);
 
-				resp.on('data', chunk => { data += chunk; });
-				resp.on('end', () => {
+			const req = https.request({
+				method: 'POST',
+				//search: ,
+				host: translationUrl.hostname,
+				path: translationUrl.pathname + `${translationUrl.search}&from=${settings.input}&to=${settings.output}`,
+				headers: { 
+					'Authorization' : "Bearer " + this.token, 
+					'Content-Type' : 'application/json',
+					'Content-Length' : Buffer.byteLength(bodyContent) }
+				}, 
+				res => {
+					res.on('data', buffer => {
 
-					let results = rgxTranslation.exec(data);
+						let data = JSON.parse(buffer.toString())[0];
 
-					resolve(results![1]);
-				});
+						resolve(data.translations[0].text);
+					})
+				}
+			);
 
-			}).on("error", err => {
-				resolve(`error: ${err}`);
+			req.on('error', (error) => {
+				throw `getTranslation error: ${error}`
 			});
+
+			req.write(bodyContent);
+			req.end();
+		});
+	}
+
+	private tenMinutesMS = 10 * 60 * 1000;
+
+	tokenRefreshRequired(): boolean {
+		return !this.lastTokenRefresh || new Date().getTime() - this.lastTokenRefresh.getTime() > this.tenMinutesMS;
+	}
+
+	async refreshToken(settings: Settings): Promise<void> {
+
+		return new Promise(resolve => {
+
+			let tokenUrl = new URL(settings.tokenUrl);
+
+			const req = https.request({
+				method: 'POST',
+				host: tokenUrl.hostname,
+				path: tokenUrl.pathname,
+				headers: { 'Ocp-Apim-Subscription-Key': settings.apiKey }
+				}, 
+				res => {
+					res.on('data', token => {
+						this.token = token.toString();
+					
+						resolve();
+					})
+				}
+			);
+
+			req.on('error', (error) => {
+				throw `refreshToken error: ${error}`
+			})
+
+			req.write('')
+			req.end()
 		});
 	}
 }

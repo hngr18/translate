@@ -34,8 +34,8 @@ export function activate(context: ExtensionContext) {
 	};
 
 	client = new LanguageClient(
-		'languageServerExample',
-		'Language Server Example',
+		'vscode-translator',
+		'VSCode Translator',
 		serverOptions,
 		clientOptions
 	);

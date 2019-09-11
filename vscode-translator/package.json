@@ -28,14 +28,32 @@
 				"translation.input": {
 					"scope": "resource",
 					"type": "string",
-					"default": "serbian",
-					"description": "The language of the variables and comments in the source code you would like to translate"
+					"default": "sr",
+					"description": "The language of the variables and comments in the source code you would like to translate, 639-1 code options: https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes"
 				},
 				"translation.output": {
 					"scope": "resource",
 					"type": "string",
-					"default": "english",
-					"description": "The language you would like to translate to"
+					"default": "en",
+					"description": "The language you would like to translate to, 639-1 code options: https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes"
+				},
+				"translation.tokenUrl": {
+					"scope": "resource",
+					"type": "string",
+					"default": "https://api.cognitive.microsoft.com/sts/v1.0/issueToken",
+					"description": "https://docs.microsoft.com/en-us/azure/cognitive-services/translator/reference/v3-0-reference"
+				},
+				"translation.translationUrl": {
+					"scope": "resource",
+					"type": "string",
+					"default": "https://api.cognitive.microsofttranslator.com/translate?api-version=3.0",
+					"description": "https://docs.microsoft.com/en-us/azure/cognitive-services/translator/reference/v3-0-reference"
+				},
+				"translation.apiKey": {
+					"scope": "resource",
+					"type": "string",
+					"default": "",
+					"description": "https://docs.microsoft.com/en-us/azure/cognitive-services/translator/reference/v3-0-translate"
 				},
 				"translation.trace.server": {
 					"scope": "window",
