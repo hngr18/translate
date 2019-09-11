@@ -25,8 +25,8 @@ vscode [extension](https://code.visualstudio.com/docs/editor/extension-gallery) 
 ### tasks
 - [x] translate javascript variable name as hint
   - [x] serbian > :uk:
+- [x] add language setting
 - [ ] exclude all javascript built-in objects e.g. Math from translation
 - [ ] include css files
-- [ ] add language setting
 - [ ] add DiagnosticSeverity setting
 - [ ] add to extension marketplace
