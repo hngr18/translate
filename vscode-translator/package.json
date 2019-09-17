@@ -52,7 +52,7 @@
 				"translation.apiKey": {
 					"scope": "resource",
 					"type": "string",
-					"default": "",
+					"default": "hidden1",
 					"description": "https://docs.microsoft.com/en-us/azure/cognitive-services/translator/reference/v3-0-translate"
 				},
 				"translation.trace.server": {
